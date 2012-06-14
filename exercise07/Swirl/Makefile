@@ -1,8 +1,6 @@
-DYLD_LIBRARY_PATH=/usr/local/cuda/lib
-PATH=/usr/local/cuda/bin:$PATH
 CC = /usr/local/cuda/bin/nvcc 
-CFLAGS =  
-LDFLAGS = 
+CFLAGS = -I$(HOME)/.homebrew/include
+LDFLAGS = --linker-options "-framework,OpenGL,-framework,GLUT"
 BIN = $(shell basename `pwd`)
 OBJ = $(patsubst %.cu, %.o, $(wildcard *.cu))
 

@@ -4,7 +4,7 @@
 #include "common.h"
 #include "bmp.h"
 #include <stdlib.h>
-#include <GL/freeglut.h>
+#include <GLUT/glut.h>
 
 #define DIM 512
 #define blockSize 8
