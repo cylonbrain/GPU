@@ -1,6 +1,4 @@
-DYLD_LIBRARY_PATH=/usr/local/cuda/lib
-PATH=/usr/local/cuda/bin:$PATH
-CC = /usr/local/cuda/bin/nvcc 
+CC = nvcc 
 CFLAGS =  
 LDFLAGS = 
 BIN = $(shell basename `pwd`)

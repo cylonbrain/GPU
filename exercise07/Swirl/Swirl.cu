@@ -21,8 +21,8 @@ float *swirlDevPtr;				// device memory for swirled image
 
 __global__ void swirlKernel( float *sourcePtr, float *targetPtr ) 
 {
-	int index = 0;
-    // TODO: Index berechnen	
+	int index = threadIdx.x;    
+	// TODO: Index berechnen	
 
 	// TODO: Den swirl invertieren.
 
@@ -34,9 +34,13 @@ void display(void)
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// TODO: Swirl Kernel aufrufen.
+	dim3    blocks(DIM/blockSize,DIM/blockSize);
+	dim3    threads(blockSize,blockSize);	
 
-	// TODO: Ergebnis zu host memory zuruecklesen.
+	//: Swirl Kernel aufrufen.
+	swirlKernel<<<blocks, threads, 0>>>(sourceDevPtr,swirlDevPtr);
+	// Ergebnis zu host memory zuruecklesen.
+	CUDA_SAFE_CALL( cudaMemcpy(readBackPixels, swirlDevPtr, DIM * DIM, cudaMemcpyDeviceToHost) );	
 
 	// Ergebnis zeichnen (ja, jetzt gehts direkt wieder zur GPU zurueck...) 
 	glDrawPixels( DIM, DIM, GL_LUMINANCE, GL_FLOAT, readBackPixels );
@@ -68,10 +72,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// TODO: allocate memory at sourceDevPtr on the GPU and copy sourceColors into it.
 	
-	// TODO: allocate memory at swirlDevPtr for the unswirled image.	
-
+	CUDA_SAFE_CALL( cudaMalloc((void**)&sourceDevPtr, DIM * DIM )) ;
+	CUDA_SAFE_CALL( cudaMalloc((void**)&swirlDevPtr, DIM * DIM )) ;
+	CUDA_SAFE_CALL( cudaMemcpy(sourceDevPtr, sourceColors, DIM * DIM , cudaMemcpyHostToDevice) );	
 	glutMainLoop();
 
 	cleanup();

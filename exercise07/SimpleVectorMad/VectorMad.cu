@@ -9,9 +9,13 @@
 float* h_A;
 float* h_B;
 float* h_C;
+float* h_D;
+float* h_E;
 float* d_A;
 float* d_B;
 float* d_C;
+float* d_D;
+float* d_E;
 
 // Functions
 void Cleanup(void);
@@ -22,6 +26,12 @@ __global__ void VecAdd(const float* A, const float* B, float* C)
 {
     int i = threadIdx.x;    
     C[i] = A[i] + B[i];	
+}
+
+__global__ void VecAddMult(const float* A, const float* B, const float* D,float* E)
+{
+    int i = threadIdx.x;    
+    E[i] = A[i] + B[i] * D[i];	
 }
 
 // Host code
@@ -38,40 +48,60 @@ int main(int argc, char** argv)
     if (h_B == 0) Cleanup();
     h_C = (float*)malloc(size);
     if (h_C == 0) Cleanup();
+    h_D = (float*)malloc(size);
+    if (h_D == 0) Cleanup();
+    h_E = (float*)malloc(size);
+    if (h_E == 0) Cleanup();
+
 	
     // Initialize input vectors
     RandomInit(h_A, N);
     RandomInit(h_B, N);	
-	
+    RandomInit(h_D, N);	
     // Allocate vectors in device memory
     CUDA_SAFE_CALL( cudaMalloc((void**)&d_A, size) );
     CUDA_SAFE_CALL( cudaMalloc((void**)&d_B, size) );
     CUDA_SAFE_CALL( cudaMalloc((void**)&d_C, size) );		
+    CUDA_SAFE_CALL( cudaMalloc((void**)&d_D, size) );
+    CUDA_SAFE_CALL( cudaMalloc((void**)&d_E, size) );
 
     // Copy vectors from host memory to device memory
     CUDA_SAFE_CALL( cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice) );
     CUDA_SAFE_CALL( cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice) );	
+    CUDA_SAFE_CALL( cudaMemcpy(d_D, h_D, size, cudaMemcpyHostToDevice) );	
+    CUDA_SAFE_CALL( cudaMemcpy(d_C, h_C, size, cudaMemcpyHostToDevice) );	
 
 	// Invoke kernel
-	VecAdd<<<1, N>>>(d_A, d_B, d_C);
+    VecAdd<<<1, N>>>(d_A, d_B, d_C);
+    VecAddMult<<<1, N>>>(d_A, d_B, d_D, d_E);
 	
 #ifdef _DEBUG
-	CUDA_SAFE_CALL( cudaThreadSynchronize() );
+    CUDA_SAFE_CALL( cudaThreadSynchronize() );
 #endif
 
 
-	// Copy result from device memory to host memory
+    // Copy result from device memory to host memory
     // h_C contains the result in host memory
     CUDA_SAFE_CALL( cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost) );
+    CUDA_SAFE_CALL( cudaMemcpy(h_E, d_E, size, cudaMemcpyDeviceToHost) );
 
     // Verify result
-	// TODO: Print out E and verify the result.
     int i = 0;
     for (i = 0; i < N; ++i) 
 	{
         float sum = h_A[i] + h_B[i];
 		printf("%f + %f = %f\n", h_A[i], h_B[i], h_C[i]);
         if (fabs(h_C[i] - sum) > 1e-5)
+            break;
+    }
+    printf("%s \n", (i == N) ? "PASSED" : "FAILED");
+    
+    i = 0;
+    for (i = 0; i < N; ++i) 
+	{
+        float sum = h_A[i] + h_B[i] * h_D[i];
+	printf("%f + %f * %f = %f\n", h_A[i], h_B[i], h_D[i], h_E[i]);
+        if (fabs(h_E[i] - sum) > 1e-5)
             break;
     }
     printf("%s \n", (i == N) ? "PASSED" : "FAILED");
@@ -88,8 +118,10 @@ void Cleanup(void)
         cudaFree(d_B);
     if (d_C)
         cudaFree(d_C);
-
-	// TODO: Free device memory of D and E.	
+    if (d_D)
+        cudaFree(d_D);
+    if (d_E)
+        cudaFree(d_E);
 
     // Free host memory
     if (h_A)
@@ -98,8 +130,11 @@ void Cleanup(void)
         free(h_B);
     if (h_C)
         free(h_C);
+    if (h_D)
+        free(h_D);
+    if (h_E)
+        free(h_E);
 
-	// TODO: Free host memory of D and E.	
         
     CUDA_SAFE_CALL( cudaThreadExit() );
         
